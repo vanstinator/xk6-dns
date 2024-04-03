@@ -48,7 +48,46 @@ func (k *K6DNS) SetWriteTimeout(s string) error {
 	return nil
 }
 
-func (k *K6DNS) Resolve(ctx context.Context, addr, query, qtypeStr string) (string, error) {
+func (k *K6DNS) ResolveUDP(ctx context.Context, addr, query, qtypeStr string) (string, error) {
+	qtype, ok := dns.StringToType[qtypeStr]
+	if !ok {
+		return "", fmt.Errorf("unknown query type: %s", qtypeStr)
+	}
+
+	msg := &dns.Msg{}
+	msg.Id = dns.Id()
+	msg.RecursionDesired = true
+	msg.Question = make([]dns.Question, 1)
+	msg.Question[0] = dns.Question{
+		Name:   query,
+		Qtype:  qtype,
+		Qclass: dns.ClassINET,
+	}
+
+	reportDial(ctx)
+	conn, err := NewK6UDPConn(addr)
+	if err != nil {
+		reportDialError(ctx)
+		return err.Error(), nil
+	}
+	defer func() {
+		conn.Close()
+		reportDataReceived(ctx, float64(conn.rxBytes))
+		reportDataSent(ctx, float64(conn.txBytes))
+	}()
+
+	reportRequest(ctx)
+	resp, rtt, err := k.client.ExchangeWithConn(msg, &dns.Conn{Conn: conn})
+	if err != nil {
+		reportRequestError(ctx)
+		return err.Error(), nil
+	}
+	reportResponseTime(ctx, rtt)
+
+	return resp.String(), nil
+}
+
+func (k *K6DNS) ResolveTCP(ctx context.Context, addr, query, qtypeStr string) (string, error) {
 	qtype, ok := dns.StringToType[qtypeStr]
 	if !ok {
 		return "", fmt.Errorf("unknown query type: %s", qtypeStr)
