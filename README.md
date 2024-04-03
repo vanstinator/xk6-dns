@@ -24,7 +24,7 @@ Then:
 
 2. Build the binary:
   ```shell
-  xk6 build v0.33.0 --with github.com/yjuba/xk6-dns
+  xk6 build v0.33.0 --with github.com/vanstinator/xk6-dns
   ```
 
 ## Example
