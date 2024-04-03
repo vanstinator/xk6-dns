@@ -65,7 +65,7 @@ func (k *K6DNS) Resolve(ctx context.Context, addr, query, qtypeStr string) (stri
 	}
 
 	reportDial(ctx)
-	conn, err := NewK6UDPConn(addr)
+	conn, err := NewK6TCPConn(addr)
 	if err != nil {
 		reportDialError(ctx)
 		return err.Error(), nil
